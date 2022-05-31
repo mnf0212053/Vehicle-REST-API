@@ -89,6 +89,18 @@ def get_userpw(username):
 
     return pw
 
+def get_userAuthr(username):
+    sql = 'SELECT is_admin FROM users WHERE name=?'
+
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+    cur.execute(sql, (username,))
+
+    authr = cur.fetchone()
+    conn.close()
+
+    return authr
+
 def generateCode(id1, id2):
     return str(id1) + str(id2)
 
@@ -167,18 +179,22 @@ class Authorization:
         self.errorMsg = ""
 
     def authorize(self):
+        self.isAuthorized = False
         parser.add_argument('token', location = 'args')
         args = parser.parse_args()
+
         if args['token'] == None:
-            self.isAuthorized = False
             return False
         else:
             try:
-                jwt.decode(args['token'], app.config['SECRET_KEY'], algorithms=['HS256'])
+                decoded = jwt.decode(args['token'], app.config['SECRET_KEY'], algorithms=['HS256'])
             except jwt.exceptions.ExpiredSignatureError:
                 self.errorMsg = "Signature has expired."
-                self.isAuthorized = False
                 return False
+        
+        if get_userAuthr(decoded["username"])[0] == 0:
+            self.errorMsg = "Authorization blocked"
+            return False
         self.isAuthorized = True
         return True
 
@@ -254,7 +270,7 @@ class Authentication(Resource):
         else:
             payload = {
                 "username": args["Username"],
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5)
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=1)
             }
             jwt_token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
             return jsonify({"token": jwt_token})
