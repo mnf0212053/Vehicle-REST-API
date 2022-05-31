@@ -53,7 +53,7 @@ class Tester:
 
         resp = requests.post('http://127.0.0.1:5000/api/input_price', data=body)
         print(resp.text)
-        print("Input data finished")
+        print("Checking finished")
 
     def checkInputAuthorization(self, header):
         print("Check input data with authorization for " + header["Username"] + ":")
@@ -68,13 +68,47 @@ class Tester:
             time.sleep(1)
             resp = requests.post('http://127.0.0.1:5000/api/input_price?token=' + token, data=body)
             print(resp.text)
-        print("Input data finished")
+        print("Checking finished")
+
+    def checkUpdateNoAuthorization(self):
+        print('Checking for update without authorization:')
+        body = {
+            "column-to-update": ['price', 'year-id'],
+            "data-to-update": [19999999, 3],
+            "column-search": ['code'],
+            "data-search": ['23']
+        }
+
+        resp = requests.post('http://127.0.0.1:5000/api/update_price', data=body)
+        print(resp.text)
+        print("Checking finished")
+
+    def checkUpdateAuthorization(self, header):
+        print("Check update data with authorization for " + header["Username"] + ":")
+        token = self.login(header)
+        body = {
+            "column-to-update": ['price', 'year_id'],
+            "data-to-update": [19999999, 3],
+            "column-search": ['code'],
+            "data-search": ['23']
+        }
+
+        resp = requests.post('http://127.0.0.1:5000/api/update_price?token=' + token, data=body)
+        print(resp.text)
+        print("Checking finished")
 
 test = Tester()
 test.checkNoAuthorization()
 test.checkAuthorization(header_admin1)
 test.checkAuthorization(header_admin2)
+
 test.checkInputNoAuthorization()
 test.checkInputAuthorization(header_admin1)
 test.checkInputAuthorization(header_admin2)
+test.checkAuthorization(header_admin1)
+
+test.checkUpdateNoAuthorization()
+test.checkAuthorization(header_admin1)
+test.checkUpdateAuthorization(header_admin2)
+test.checkUpdateAuthorization(header_admin1)
 test.checkAuthorization(header_admin1)

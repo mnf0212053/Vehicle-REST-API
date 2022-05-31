@@ -39,6 +39,48 @@ def insert_data_init(data, table, columns):
 
     conn.close()
     
+def update_data(column_update, dataupdate, table, column_cond, datacond):
+    columns = get_columns(table)
+
+    columnupdate = []
+    columncond = []
+    for i in column_update:
+        for j in columns:
+            if i == j[1]:
+                columnupdate.append(i)
+                
+    for i in column_cond:
+        for j in columns:
+            if i == j[1]:
+                columncond.append(i)
+
+    data = []
+    for i in dataupdate:
+        data.append(i)
+    for i in datacond:
+        data.append(i)
+
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+
+    sql = "UPDATE " + table + " SET "
+    for i in range(0, len(columnupdate)):
+        sql += columnupdate[i] + "=?"
+        if i < len(columnupdate)-1:
+            sql += ","
+
+    sql += ' WHERE '
+    for i in range(0, len(datacond)):
+        sql += columncond[i] + "=?"
+        if len(datacond) > 1:
+            if i < len(datacond)-1:
+                sql += " AND "
+    
+    print(sql)
+    cur.execute(sql, tuple(data))
+    conn.commit()
+    conn.close()
+
 def create_table(name, columns, dtypes, fkey = [], tabref = []):
     sql = " CREATE TABLE IF NOT EXISTS " + name + "(id integer PRIMARY KEY,"
     for i in range(0, len(columns)):
@@ -270,6 +312,22 @@ class InputPrice(Resource):
 
         return jsonify({"message": "Input Success!"})
 
+class UpdatePrice(Resource):
+    def post(self):
+        if not auth.authorize(readOnly=False):
+            return jsonify({"message": auth.errorMsg})
+
+        parser.add_argument('column-to-update', action = 'append')
+        parser.add_argument('data-to-update', action = 'append')
+        parser.add_argument('column-search', action = 'append')
+        parser.add_argument('data-search', action = 'append')
+
+        args = parser.parse_args()
+
+        update_data(args['column-to-update'], args['data-to-update'], 'pricelist', args['column-search'], args['data-search'])
+
+        return jsonify({"message": "Update Success!"})
+
 class Authentication(Resource):
     def get(self):
         parser.add_argument('Username', location = 'headers')
@@ -294,8 +352,9 @@ api.add_resource(GetAll, '/api/all')
 api.add_resource(Search, '/api/search')
 api.add_resource(Authentication, '/api/login')
 api.add_resource(InputPrice, '/api/input_price')
+api.add_resource(UpdatePrice, '/api/update_price')
 
 data_init()
 
 if __name__ == '__main__':
-    app.run(debug=True,)
+    app.run(debug=True)
