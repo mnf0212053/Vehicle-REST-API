@@ -14,7 +14,6 @@ app.config['SECRET_KEY'] = '2un29hd2982'
 
 db = os.path.dirname(__file__) + '\\vehicle_db.db'
 
-
 def insert_data_init(data, table, columns):
     conn = sqlite3.connect(db)
     cur = conn.cursor()
@@ -162,17 +161,28 @@ def data_init():
     insert_data_init(years, 'vehicle_year', ['year'])
     insert_data_init(pricelists, 'pricelist', ['code', 'price', 'year_id', 'model_id'])
 
-def authorize():
-    parser.add_argument('token', location = 'args')
-    args = parser.parse_args()
-    if args['token'] == None:
-        return False
-    else:
-        try:
-            jwt.decode(args['token'], app.config['SECRET_KEY'], algorithms=['HS256'])
-        except jwt.exceptions.ExpiredSignatureError:
+class Authorization:
+    def __init__(self):
+        self.isAuthorized = False
+        self.errorMsg = ""
+
+    def authorize(self):
+        parser.add_argument('token', location = 'args')
+        args = parser.parse_args()
+        if args['token'] == None:
+            self.isAuthorized = False
             return False
-    return True
+        else:
+            try:
+                jwt.decode(args['token'], app.config['SECRET_KEY'], algorithms=['HS256'])
+            except jwt.exceptions.ExpiredSignatureError:
+                self.errorMsg = "Signature has expired."
+                self.isAuthorized = False
+                return False
+        self.isAuthorized = True
+        return True
+
+auth = Authorization()
 
 class VehicleApp(Resource):
     def get(self):
@@ -182,8 +192,8 @@ class VehicleApp(Resource):
 
 class GetAll(Resource):
     def get(self):
-        if not authorize():
-            return jsonify({"message": "Unauthorized Access"})
+        if not auth.authorize():
+            return jsonify({"message": auth.errorMsg})
 
         join_result = inner_join()
 
@@ -204,8 +214,8 @@ class GetAll(Resource):
 
 class Search(Resource):
     def get(self):
-        if not authorize():
-            return jsonify({"message": "Unauthorized Access"})
+        if not auth.authorize():
+            return jsonify({"message": auth.errorMsg})
             
         parser.add_argument('q', location = 'args')
         parser.add_argument('b', location = 'args')
