@@ -97,6 +97,17 @@ class Tester:
         print(resp.text)
         print("Checking finished")
 
+    def checkDeleteAuthorization(self, header):
+        print("Check delete data with authorization for " + header["Username"] + ":")
+        token = self.login(header)
+        body = {
+            "id": 3
+        }
+
+        resp = requests.delete('http://127.0.0.1:5000/api/delete_price_by_id?token=' + token, data=body)
+        print(resp.text)
+        print("Checking finished")
+
 test = Tester()
 test.checkNoAuthorization()
 test.checkAuthorization(header_admin1)
@@ -111,4 +122,7 @@ test.checkUpdateNoAuthorization()
 test.checkAuthorization(header_admin1)
 test.checkUpdateAuthorization(header_admin2)
 test.checkUpdateAuthorization(header_admin1)
+test.checkAuthorization(header_admin1)
+
+test.checkDeleteAuthorization(header_admin1)
 test.checkAuthorization(header_admin1)

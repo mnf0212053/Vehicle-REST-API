@@ -328,6 +328,23 @@ class UpdatePrice(Resource):
 
         return jsonify({"message": "Update Success!"})
 
+class DeletePriceByID(Resource):
+    def delete(self):
+        if not auth.authorize(readOnly=False):
+            return jsonify({"message": auth.errorMsg})
+
+        sql = "DELETE FROM pricelist WHERE id=?"
+        parser.add_argument('id')
+        args = parser.parse_args()
+
+        conn = sqlite3.connect(db)
+        cur = conn.cursor()
+        cur.execute(sql, (args['id'],))
+        conn.commit()
+        conn.close()
+
+        return jsonify({"message": "Delete Successful!"})
+
 class Authentication(Resource):
     def get(self):
         parser.add_argument('Username', location = 'headers')
@@ -353,6 +370,7 @@ api.add_resource(Search, '/api/search')
 api.add_resource(Authentication, '/api/login')
 api.add_resource(InputPrice, '/api/input_price')
 api.add_resource(UpdatePrice, '/api/update_price')
+api.add_resource(DeletePriceByID, '/api/delete_price_by_id')
 
 data_init()
 
