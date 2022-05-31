@@ -178,7 +178,7 @@ class Authorization:
         self.isAuthorized = False
         self.errorMsg = ""
 
-    def authorize(self):
+    def authorize(self, readOnly = True):
         self.isAuthorized = False
         parser.add_argument('token', location = 'args')
         args = parser.parse_args()
@@ -192,9 +192,10 @@ class Authorization:
                 self.errorMsg = "Signature has expired."
                 return False
         
-        if get_userAuthr(decoded["username"])[0] == 0:
-            self.errorMsg = "Authorization blocked"
-            return False
+        if not readOnly:
+            if get_userAuthr(decoded["username"])[0] == 0:
+                self.errorMsg = "Authorization blocked"
+                return False
         self.isAuthorized = True
         return True
 
@@ -230,7 +231,7 @@ class GetAll(Resource):
 
 class Search(Resource):
     def get(self):
-        if not auth.authorize():
+        if not auth.authorize(readOnly=False):
             return jsonify({"message": auth.errorMsg})
             
         parser.add_argument('q', location = 'args')
@@ -256,6 +257,19 @@ class Search(Resource):
 
         return jsonify(data_array)
 
+class InputPrice(Resource):
+    def post(self):
+        if not auth.authorize(readOnly=False):
+            return jsonify({"message": auth.errorMsg})
+
+        parser.add_argument('columns', action = 'append')
+        parser.add_argument('data', action = 'append')
+
+        args = parser.parse_args()
+        insert_data_init([args['data']], 'pricelist', args['columns'])
+
+        return jsonify({"message": "Input Success!"})
+
 class Authentication(Resource):
     def get(self):
         parser.add_argument('Username', location = 'headers')
@@ -279,8 +293,9 @@ api.add_resource(VehicleApp, '/api')
 api.add_resource(GetAll, '/api/all')
 api.add_resource(Search, '/api/search')
 api.add_resource(Authentication, '/api/login')
+api.add_resource(InputPrice, '/api/input_price')
 
 data_init()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True,)
