@@ -1,0 +1,111 @@
+Vehicle-Rest-API Documentation
+=========================================================================
+
+1. Login 
+Request: GET /api/login
+Description: Login to access API
+Headers:{
+    "Username": <username>,
+    "Password": <password>
+}
+Response: A token valid for a certain amount of time.
+
+2. Get all data
+Request: GET /api/all
+Description: Obtain the entire vehicle data in database. Authorization required.
+Arguments: 
+token = <your token>
+Response: The entire data.
+Ex: 
+token = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImFkbWluMSIsImV4cCI6MTY1NDE0MzI5Nn0.Zt9zFaJiuyE3msY2h8walK3ZPi0sSDtO1TjiBoDMy1s
+Result: [
+            {
+                "brand": "Honda",
+                "code": "11",
+                "model": "125cc",
+                "price": 9999999,
+                "type": "Vario",
+                "year": 2014
+            },
+            {
+                "brand": "Honda",
+                "code": "12",
+                "model": "2014",
+                "price": 8888888,
+                "type": "Spacy",
+                "year": 2014
+            }
+        ]
+
+3. Get a specific data
+Request: GET /api/search
+Description: Obtain vehicle data based on the given arguments. Authorization required.
+Arguments:
+token = <your token>
+q = the query
+b = the type the query
+Response: Matched vehicle data
+Ex:
+token = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImFkbWluMSIsImV4cCI6MTY1NDE0MzI5Nn0.Zt9zFaJiuyE3msY2h8walK3ZPi0sSDtO1TjiBoDMy1s
+q = 12
+b = code
+Result: [
+            {
+                "brand": "Honda",
+                "code": "12",
+                "model": "2014",
+                "price": 8888888,
+                "type": "Spacy",
+                "year": 2014
+            }
+        ]
+
+4. Input a data
+Request: POST /api/input_price
+Description: Insert a vehicle data to the database. Admins only.
+Arguments: 
+token = <your token>
+Body: {
+    "column": ['code', 'price', 'year_id', 'model_id'],
+    "data":[<vehicle code>, <vehicle price>, <vehicle year>, <vehicle model>]
+}
+Response: A message that shows the success of the data entry.
+Ex: {    
+    "columns": ["code", "price", "year_id", "model_id"],
+    "data": ["34", 79999999, 3, 4]
+}
+Result: {
+    "message": "Input Success!"
+}
+
+5. Update a data
+Request: POST /api/update_price
+Description: Update a vehicle data in the database. Admins only.
+Body: {
+    "column-to-update": [<query type 1>, <query type 2>, ...],
+    "data-to-update": [<data query 1>, <data query 2>, ...],
+    "column-search": [<type of searched data 1>, <type of the searched data 2>, ...],
+    "data-search":  [<data search query 1>, <data search query 2>, ...]
+}
+Ex: {
+    "column-to-update": ["price", "year_id"],
+    "data-to-update": [39999999, 5],
+    "column-search": ["code"],
+    "data-search":  ["12"]
+}
+Result: {
+    "message": "Update Success!"
+}
+
+6. Delete a data by ID
+Request: DELETE /api/delete_price_by_ID
+Description: Delete a specific data based on the ID the data possessed.
+Body: {
+    "id": <vehicle id>
+}
+Ex: {
+    "id": 1
+}
+Result: {
+    "message": "Delete Successful!"
+}

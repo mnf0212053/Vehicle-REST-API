@@ -5,197 +5,30 @@ import sqlite3
 import jwt
 import hashlib
 import datetime
+import sql
+import json
 
 app = Flask(__name__)
 api = Api(app)
 parser = reqparse.RequestParser()
 
+f = open(os.path.dirname(__file__) + '\\config.json', 'r')
+conf_data = json.load(f)
+f.close()
+
 app.config['SECRET_KEY'] = '2un29hd2982'
-
-db = os.path.dirname(__file__) + '\\vehicle_db.db'
-
-def insert_data_init(data, table, columns):
-    conn = sqlite3.connect(db)
-    cur = conn.cursor()
-
-    sql = " INSERT INTO " + table + "("
-    for i in range(0, len(columns)):
-        sql += columns[i]
-        if i < len(columns) - 1:
-            sql += ","
-    
-    sql += ") VALUES ("
-
-    for i in range(0, len(columns)):
-        sql += "?"
-        if i < len(columns) - 1:
-            sql += ","
-
-    sql += ");"
-
-    for i in data:
-        cur.execute(sql, tuple(i))
-        conn.commit()
-
-    conn.close()
-    
-def update_data(column_update, dataupdate, table, column_cond, datacond):
-    columns = get_columns(table)
-
-    columnupdate = []
-    columncond = []
-    for i in column_update:
-        for j in columns:
-            if i == j[1]:
-                columnupdate.append(i)
-                
-    for i in column_cond:
-        for j in columns:
-            if i == j[1]:
-                columncond.append(i)
-
-    data = []
-    for i in dataupdate:
-        data.append(i)
-    for i in datacond:
-        data.append(i)
-
-    conn = sqlite3.connect(db)
-    cur = conn.cursor()
-
-    sql = "UPDATE " + table + " SET "
-    for i in range(0, len(columnupdate)):
-        sql += columnupdate[i] + "=?"
-        if i < len(columnupdate)-1:
-            sql += ","
-
-    sql += ' WHERE '
-    for i in range(0, len(datacond)):
-        sql += columncond[i] + "=?"
-        if len(datacond) > 1:
-            if i < len(datacond)-1:
-                sql += " AND "
-    
-    print(sql)
-    cur.execute(sql, tuple(data))
-    conn.commit()
-    conn.close()
-
-def create_table(name, columns, dtypes, fkey = [], tabref = []):
-    sql = " CREATE TABLE IF NOT EXISTS " + name + "(id integer PRIMARY KEY,"
-    for i in range(0, len(columns)):
-        sql += columns[i]
-        sql += " "
-        sql += dtypes[i]
-        if i < len(columns) - 1:
-            sql += ", "
-
-    for i in range(0, len(fkey)):
-        if i == 0:
-            sql += ", "
-        sql += "FOREIGN KEY (" + fkey[i] + ") REFERENCES " + tabref[i] + "(id)"
-        if i < len(fkey) - 1:
-            sql += ", "
-    sql += ");"
-
-    conn = sqlite3.connect(db)
-
-    cur = conn.cursor()
-    cur.execute(sql)
-
-    conn.close()
-
-def get_columns(table):
-    sql = " PRAGMA table_info(" + table + ");"
-
-    conn = sqlite3.connect(db)
-    cur = conn.cursor()
-
-    cur.execute(sql)
-
-    cols = cur.fetchall()
-
-    conn.close()
-
-    return cols
-
-def get_userpw(username):
-    sql = 'SELECT pass FROM users WHERE name=?'
-
-    conn = sqlite3.connect(db)
-    cur = conn.cursor()
-    cur.execute(sql, (username,))
-
-    pw = cur.fetchone()
-    conn.close()
-
-    return pw
-
-def get_userAuthr(username):
-    sql = 'SELECT is_admin FROM users WHERE name=?'
-
-    conn = sqlite3.connect(db)
-    cur = conn.cursor()
-    cur.execute(sql, (username,))
-
-    authr = cur.fetchone()
-    conn.close()
-
-    return authr
-
 def generateCode(id1, id2):
     return str(id1) + str(id2)
 
-def inner_join(query = None, by = 'type'):
-    conn = sqlite3.connect(db)
-    cur = conn.cursor()
-    
-    sql = "SELECT p.code, b.name, t.name, m.name, p.price, y.year FROM pricelist p "
-    sql += "INNER JOIN vehicle_model m ON p.model_id = m.id "
-    sql += "INNER JOIN vehicle_year y ON p.year_id = y.id "
-    sql += "INNER JOIN vehicle_type t ON m.type_id = t.id "
-    sql += "INNER JOIN vehicle_brand b ON t.brand_id = b.id"
-
-    if query != None:
-        if by == 'type':
-            sql += " WHERE t.name=?"
-        elif by == 'brand':
-            sql += " WHERE b.name=?"
-        elif by == 'model':
-            sql += " WHERE m.name=?"
-        elif by == 'code':
-            sql += " WHERE p.code=?"
-        elif by == 'price':
-            sql += " WHERE p.price=?"
-        elif by == 'year':
-            sql += " WHERE y.year=?"
-        else:
-            sql += " WHERE t.name=?"
-
-        cur.execute(sql, (query,))
-    else:
-        cur.execute(sql)
-
-    data = cur.fetchall()
-
-    conn.close()
-
-    data_dict = {
-        "data": data,
-        "columns": ['code', 'brand', 'type', 'model', 'price', 'year']
-    }
-
-    return data_dict
-
 def data_init():
-    os.remove(db)
+    sql.remove_db()
     
-    create_table('users', ['name', 'is_admin', 'pass'], ['varchar(30)', 'integer', 'varchar(255)'])
-    create_table('vehicle_brand', ['name'], ['varchar(30)'])
-    create_table('vehicle_type', ['name', 'brand_id'], ['varchar(30)', 'integer'], ['brand_id'], ['vehicle_brand'])
-    create_table('vehicle_model', ['name', 'type_id'], ['varchar(30)', 'integer'], ['type_id'], ['vehicle_type'])
-    create_table('vehicle_year', ['year'], ['integer'])
-    create_table('pricelist', ['code', 'price', 'year_id', 'model_id'], ['varchar(30)', 'integer', 'integer', 'integer'], ['year_id', 'model_id'], ['vehicle_year', 'vehicle_model'])
+    sql.create_table('users', ['name', 'is_admin', 'pass'], ['varchar(30)', 'integer', 'varchar(255)'])
+    sql.create_table('vehicle_brand', ['name'], ['varchar(30)'])
+    sql.create_table('vehicle_type', ['name', 'brand_id'], ['varchar(30)', 'integer'], ['brand_id'], ['vehicle_brand'])
+    sql.create_table('vehicle_model', ['name', 'type_id'], ['varchar(30)', 'integer'], ['type_id'], ['vehicle_type'])
+    sql.create_table('vehicle_year', ['year'], ['integer'])
+    sql.create_table('pricelist', ['code', 'price', 'year_id', 'model_id'], ['varchar(30)', 'integer', 'integer', 'integer'], ['year_id', 'model_id'], ['vehicle_year', 'vehicle_model'])
     
     pass1 = hashlib.sha256(b'the1stpass').hexdigest()
     pass2 = hashlib.sha256(b'admin2pwd').hexdigest()
@@ -208,12 +41,12 @@ def data_init():
 
     pricelists = [[generateCode(1,1), 9999999, 1, 1], [generateCode(1,2), 8888888, 1, 2]]
 
-    insert_data_init(users, 'users', ['name', 'is_admin', 'pass'])
-    insert_data_init(brands, 'vehicle_brand', ['name'])
-    insert_data_init(types, 'vehicle_type', ['name', 'brand_id'])
-    insert_data_init(models, 'vehicle_model', ['name', 'type_id'])
-    insert_data_init(years, 'vehicle_year', ['year'])
-    insert_data_init(pricelists, 'pricelist', ['code', 'price', 'year_id', 'model_id'])
+    sql.insert_data_init(users, 'users', ['name', 'is_admin', 'pass'])
+    sql.insert_data_init(brands, 'vehicle_brand', ['name'])
+    sql.insert_data_init(types, 'vehicle_type', ['name', 'brand_id'])
+    sql.insert_data_init(models, 'vehicle_model', ['name', 'type_id'])
+    sql.insert_data_init(years, 'vehicle_year', ['year'])
+    sql.insert_data_init(pricelists, 'pricelist', ['code', 'price', 'year_id', 'model_id'])
 
 class Authorization:
     def __init__(self):
@@ -235,7 +68,7 @@ class Authorization:
                 return False
         
         if not readOnly:
-            if get_userAuthr(decoded["username"])[0] == 0:
+            if sql.get_userAuthr(decoded["username"])[0] == 0:
                 self.errorMsg = "Authorization blocked"
                 return False
         self.isAuthorized = True
@@ -254,7 +87,7 @@ class GetAll(Resource):
         if not auth.authorize():
             return jsonify({"message": auth.errorMsg})
 
-        join_result = inner_join()
+        join_result = sql.inner_join()
 
         data = join_result["data"]
         col_arr = join_result["columns"]
@@ -280,7 +113,7 @@ class Search(Resource):
         parser.add_argument('b', location = 'args')
         args = parser.parse_args()
 
-        join_result = inner_join(query = args['q'].capitalize(), by = args['b'])
+        join_result = sql.inner_join(query = args['q'].capitalize(), by = args['b'])
         if join_result["data"] == None:
             return jsonify({"msg": "Entry Not Found"})
         
@@ -308,7 +141,7 @@ class InputPrice(Resource):
         parser.add_argument('data', action = 'append')
 
         args = parser.parse_args()
-        insert_data_init([args['data']], 'pricelist', args['columns'])
+        sql.insert_data_init([args['data']], 'pricelist', args['columns'])
 
         return jsonify({"message": "Input Success!"})
 
@@ -324,7 +157,7 @@ class UpdatePrice(Resource):
 
         args = parser.parse_args()
 
-        update_data(args['column-to-update'], args['data-to-update'], 'pricelist', args['column-search'], args['data-search'])
+        sql.update_data(args['column-to-update'], args['data-to-update'], 'pricelist', args['column-search'], args['data-search'])
 
         return jsonify({"message": "Update Success!"})
 
@@ -333,15 +166,10 @@ class DeletePriceByID(Resource):
         if not auth.authorize(readOnly=False):
             return jsonify({"message": auth.errorMsg})
 
-        sql = "DELETE FROM pricelist WHERE id=?"
         parser.add_argument('id')
         args = parser.parse_args()
 
-        conn = sqlite3.connect(db)
-        cur = conn.cursor()
-        cur.execute(sql, (args['id'],))
-        conn.commit()
-        conn.close()
+        sql.delete_by_id(args['id'])
 
         return jsonify({"message": "Delete Successful!"})
 
@@ -354,12 +182,12 @@ class Authentication(Resource):
 
         passq = hashlib.sha256(bytes(args['Password'], 'utf-8')).hexdigest()
 
-        if args['Password'] == None or passq != get_userpw(args['Username'])[0]:
+        if args['Password'] == None or passq != sql.get_userpw(args['Username'])[0]:
             return jsonify({"message": "Authentication error"}, 401)
         else:
             payload = {
                 "username": args["Username"],
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=1)
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=conf_data['login-expired-in-sec'])
             }
             jwt_token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
             return jsonify({"token": jwt_token})
