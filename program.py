@@ -169,6 +169,9 @@ class DeletePriceByID(Resource):
         parser.add_argument('id')
         args = parser.parse_args()
 
+        if not sql.check_if_exist('pricelist',['id'], [args['id']]):
+            return jsonify({"message": "Data doesn't exist"})
+
         sql.delete_by_id(args['id'])
 
         return jsonify({"message": "Delete Successful!"})

@@ -184,3 +184,23 @@ def delete_by_id(id):
     cur.execute(sql, (id,))
     conn.commit()
     conn.close()
+
+def check_if_exist(table, column_cond, datacond):
+    sql = "SELECT * FROM " + table + " WHERE "
+    for i in range(0, len(column_cond)):
+        sql += column_cond[i] + "=?"
+        if i < len(column_cond)-1:
+            sql += " AND "
+    
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+    cur.execute(sql, tuple(datacond))
+    data = cur.fetchall()
+    conn.close()
+
+    if len(data) == 0:
+        return False
+    return True
+
+def placeholder():
+    pass
